@@ -1,0 +1,119 @@
+# Release: despliegue a Vercel (producción) al publicar tag SemVer numérico X.Y.Z
+# Repo standalone awf-platform (Next.js + API v1)
+name: Release → Vercel
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+concurrency:
+  group: vercel-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate-tag:
+    name: Validar formato de tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comprobar MAJOR.MINOR.PATCH (solo dígitos)
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "Tag recibido: $TAG"
+          if ! [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::El tag debe ser MAJOR.MINOR.PATCH (solo dígitos, sin prefijo v). Obtenido: '$TAG'"
+            exit 1
+          fi
+
+  release:
+    name: Tests, migración prod y deploy Vercel
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    environment: production
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: awf
+          POSTGRES_PASSWORD: awf
+          POSTGRES_DB: awf_ci
+        options: >-
+          --health-cmd "pg_isready -U awf -d awf_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://awf:awf@localhost:5432/awf_ci?schema=public
+      SESSION_SECRET: ci-session-secret-minimum-32-characters-long-xx
+      REDIS_URL: ""
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Comprobar secretos Vercel
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN:-}" ]; then echo "::error::VERCEL_TOKEN no definido."; exit 1; fi
+          if [ -z "${VERCEL_ORG_ID:-}" ]; then echo "::error::VERCEL_ORG_ID no definido."; exit 1; fi
+          if [ -z "${VERCEL_PROJECT_ID:-}" ]; then echo "::error::VERCEL_PROJECT_ID no definido."; exit 1; fi
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Build paquetes workspace
+        run: |
+          set -euo pipefail
+          pnpm --filter @awf/manifest-schema build
+          pnpm --filter @awf/api-contract build
+
+      - name: Prisma migrate deploy (CI)
+        run: pnpm exec prisma migrate deploy
+
+      - name: Tests
+        run: pnpm run test
+
+      - name: Prisma migrate deploy (producción)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error::Secret DATABASE_URL_PRODUCTION no configurado."
+            exit 1
+          fi
+          pnpm exec prisma migrate deploy
+
+      - name: Instalar Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Vercel pull
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Vercel build
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Vercel deploy
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"

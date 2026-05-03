@@ -1,0 +1,59 @@
+# CI: lint, build y tests en push/PR
+# Repo standalone awf-platform (Next.js + API v1)
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: awf
+          POSTGRES_PASSWORD: awf
+          POSTGRES_DB: awf_ci
+        options: >-
+          --health-cmd "pg_isready -U awf -d awf_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://awf:awf@localhost:5432/awf_ci?schema=public
+      SESSION_SECRET: ci-session-secret-minimum-32-characters-long-xx
+      REDIS_URL: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build paquetes workspace
+        run: |
+          set -euo pipefail
+          pnpm --filter @awf/manifest-schema build
+          pnpm --filter @awf/api-contract build
+
+      - name: Prisma migrate deploy
+        run: pnpm exec prisma migrate deploy
+
+      - run: pnpm run test
+
+      - run: pnpm run build

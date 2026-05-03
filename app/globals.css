@@ -1,0 +1,310 @@
+@import "tailwindcss";
+
+/* ──────────────────────────────────────────────
+   AWF Design System — tokens from Stitch project
+   "AWF Backoffice Studio" (Material Dynamic palette)
+   ────────────────────────────────────────────── */
+
+@theme inline {
+  /* Surface */
+  --color-surface: #131313;
+  --color-surface-dim: #131313;
+  --color-surface-bright: #3a3939;
+  --color-surface-container-lowest: #0e0e0e;
+  --color-surface-container-low: #1c1b1b;
+  --color-surface-container: #201f1f;
+  --color-surface-container-high: #2a2a2a;
+  --color-surface-container-highest: #353534;
+
+  /* Primary */
+  --color-primary: #c2c1ff;
+  --color-primary-container: #5856d6;
+  --color-on-primary: #1c0b9f;
+  --color-on-primary-container: #e7e4ff;
+  --color-inverse-primary: #4f4ccd;
+
+  /* Secondary */
+  --color-secondary: #adc6ff;
+  --color-secondary-container: #4b8eff;
+  --color-on-secondary: #002e69;
+  --color-on-secondary-container: #00285c;
+
+  /* Tertiary */
+  --color-tertiary: #ffb785;
+  --color-tertiary-container: #a25100;
+  --color-on-tertiary: #502500;
+
+  /* Error */
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+  --color-on-error: #690005;
+  --color-on-error-container: #ffdad6;
+
+  /* On-surface */
+  --color-on-surface: #e5e2e1;
+  --color-on-surface-variant: #c7c4d6;
+  --color-inverse-surface: #e5e2e1;
+  --color-inverse-on-surface: #313030;
+
+  /* Outline */
+  --color-outline: #918f9f;
+  --color-outline-variant: #464554;
+
+  /* Borders (custom AWF) */
+  --color-border: #2d2d2d;
+  --color-border-strong: #3d3d3d;
+
+  /* Background alias */
+  --color-background: #0a0a0a;
+  --color-foreground: #e5e2e1;
+
+  /* Fonts */
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono);
+  --font-label: var(--font-space-grotesk);
+
+  /* Border radius — matches Stitch config exactly:
+     Stitch DEFAULT=2px, lg=4px, xl=8px, full=12px */
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-full: 9999px;
+
+  /* Input field background (Stitch #0F0F0F) */
+  --color-input: #0f0f0f;
+
+  /* Footer background (Stitch #141414) */
+  --color-footer: #141414;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+::selection {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
+/* ── Glass panel ── */
+.glass-panel {
+  background: rgba(20, 20, 20, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border-strong);
+}
+
+/* ── Material Symbols baseline ── */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+}
+
+/* ── Explorer / IDE — syntax highlighting (Stitch Agent Configuration) ── */
+.syntax-key {
+  color: var(--color-primary);
+}
+.syntax-string {
+  color: var(--color-tertiary);
+}
+.syntax-number {
+  color: var(--color-secondary);
+}
+.syntax-boolean {
+  color: var(--color-error);
+}
+.syntax-null {
+  color: var(--color-outline);
+}
+.syntax-keyword {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+.syntax-comment {
+  color: var(--color-outline);
+  font-style: italic;
+}
+
+/* Scrollbars estilo Stitch (paneles Explorer) */
+.explorer-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.explorer-scrollbar::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+.explorer-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+.explorer-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}
+.explorer-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) var(--color-background);
+}
+
+/* Perfil / cards — entrada suave */
+@keyframes awf-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.awf-fade-up {
+  animation: awf-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.awf-fade-up-delay {
+  opacity: 0;
+  animation-delay: 85ms;
+}
+
+.awf-focus-ring {
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.awf-focus-ring:focus-within {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary-container) 55%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary-container) 70%, var(--color-border));
+}
+
+/* ── Workspace Editor — Markdown canvas grid ── */
+.markdown-editor-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Explorer — Markdown preview (react-markdown), tema oscuro alineado al admin */
+.explorer-md-preview {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-on-surface);
+  word-break: break-word;
+}
+.explorer-md-preview :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--color-on-surface);
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.35rem;
+}
+.explorer-md-preview h1 {
+  font-size: 1.125rem;
+}
+.explorer-md-preview h2 {
+  font-size: 1rem;
+}
+.explorer-md-preview h3 {
+  font-size: 0.9375rem;
+}
+.explorer-md-preview p {
+  margin: 0.5rem 0;
+  color: var(--color-on-surface);
+}
+.explorer-md-preview a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.explorer-md-preview ul,
+.explorer-md-preview ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+.explorer-md-preview li {
+  margin: 0.2rem 0;
+}
+.explorer-md-preview code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--color-surface-container-low);
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-xs);
+  color: var(--color-on-surface-variant);
+}
+.explorer-md-preview pre {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface-container-low);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+}
+.explorer-md-preview pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-on-surface-variant);
+}
+.explorer-md-preview blockquote {
+  margin: 0.75rem 0;
+  border-left: 2px solid color-mix(in srgb, var(--color-primary-container) 40%, transparent);
+  padding-left: 0.75rem;
+  color: var(--color-on-surface-variant);
+  font-style: italic;
+}
+.explorer-md-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75rem 0;
+  font-size: 0.8125rem;
+}
+.explorer-md-preview th,
+.explorer-md-preview td {
+  border: 1px solid var(--color-border);
+  padding: 0.35rem 0.5rem;
+}
+.explorer-md-preview th {
+  background: var(--color-surface-container-low);
+}
+.explorer-md-preview hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin: 1rem 0;
+}
+
+/* ── Workspace — Stitch typography helpers ── */
+.label-xs-uppercase {
+  font-family: var(--font-label);
+  font-size: 0.625rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.dot-status {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Workspace editor scrollbar */
+.ws-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.ws-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ws-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+.ws-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}

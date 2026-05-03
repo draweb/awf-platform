@@ -1,0 +1,312 @@
+// Modelo alineado a docs/requeriments.md §10 y plan Anexo E
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  maintainer
+  publisher
+  consumer
+}
+
+enum ArtifactVisibility {
+  private
+  internal
+  public
+}
+
+enum ArtifactStatus {
+  active
+  deprecated
+  archived
+}
+
+enum VersionStatus {
+  draft
+  review
+  published
+  deprecated
+  yanked
+}
+
+enum WorkspaceStatus {
+  draft
+  active
+  archived
+}
+
+/// Tipos explícitos requeriments §4 (MVP: subset validado en dominio)
+enum ArtifactType {
+  cursor_rule
+  agent
+  skill
+  command
+  template
+  script
+  architecture_guideline
+  workspace_config
+  ci_pipeline
+  eslint_config
+  prettier_config
+  tsconfig
+  docker_config
+  cursor_hook
+}
+
+enum CliDeviceAuthStatus {
+  pending
+  approved
+  consumed
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  role         UserRole @default(consumer)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  sessions                 Session[]
+  personalAccessTokens     PersonalAccessToken[]
+  cliAccessTokens          CliAccessToken[]
+  cliDeviceAuthorizations  CliDeviceAuthorization[]
+  installEvents            InstallEvent[]
+  workspaces               Workspace[]
+  artifactLibraries        ArtifactLibrary[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model PersonalAccessToken {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  tokenPrefix String    @map("token_prefix")
+  tokenHash   String    @map("token_hash")
+  scopes      String[]
+  lastUsedAt  DateTime? @map("last_used_at")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("personal_access_tokens")
+}
+
+/// Token opaco `awf_cli_*` emitido tras flujo device login (permisos por rol de usuario).
+model CliAccessToken {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String    @default("CLI device login")
+  tokenPrefix String    @map("token_prefix")
+  tokenHash   String    @map("token_hash")
+  lastUsedAt  DateTime? @map("last_used_at")
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  deviceAuthorizations CliDeviceAuthorization[]
+
+  @@unique([tokenHash])
+  @@index([userId])
+  @@map("cli_access_tokens")
+}
+
+/// Solicitud RFC8628-like: user_code legible + device_code secreto hasta canje.
+model CliDeviceAuthorization {
+  id             String             @id @default(cuid())
+  userCodeHash   String             @unique @map("user_code_hash")
+  deviceCodeHash String             @unique @map("device_code_hash")
+  status         CliDeviceAuthStatus @default(pending)
+  userId         String?            @map("user_id")
+  user           User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  expiresAt      DateTime           @map("expires_at")
+  approvedAt     DateTime?          @map("approved_at")
+  consumedAt     DateTime?          @map("consumed_at")
+  cliAccessTokenId String?          @map("cli_access_token_id")
+  cliAccessToken   CliAccessToken?  @relation(fields: [cliAccessTokenId], references: [id], onDelete: SetNull)
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  @@index([expiresAt])
+  @@map("cli_device_authorizations")
+}
+
+model Artifact {
+  id          String              @id @default(cuid())
+  name        String              @unique
+  type        ArtifactType
+  description String
+  owner       String
+  visibility  ArtifactVisibility  @default(internal)
+  status      ArtifactStatus      @default(active)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  versions            ArtifactVersion[]
+  distTags            DistTag[]
+  installEvents       InstallEvent[]
+  workspaceArtifacts  WorkspaceArtifact[]
+  libraryArtifacts    LibraryArtifact[]
+
+  @@map("artifacts")
+}
+
+model Workspace {
+  id               String          @id @default(cuid())
+  slug             String          @unique
+  name             String
+  description      String
+  semver           String          @default("0.1.0")
+  status           WorkspaceStatus @default(draft)
+  constitution     Json
+  rawMarkdown      String          @map("raw_markdown") @db.Text
+  stacks           String[]
+  customMarkdown   Boolean         @default(false) @map("custom_markdown")
+  ownerId          String          @map("owner_id")
+  owner            User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  artifacts  WorkspaceArtifact[]
+  libraries  WorkspaceLibrary[]
+
+  @@index([ownerId])
+  @@map("workspaces")
+}
+
+model WorkspaceArtifact {
+  workspaceId   String    @map("workspace_id")
+  artifactId    String    @map("artifact_id")
+  pinnedVersion String?   @map("pinned_version")
+  order         Int       @default(0)
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  artifact      Artifact  @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, artifactId])
+  @@map("workspace_artifacts")
+}
+
+model ArtifactVersion {
+  id             String        @id @default(cuid())
+  artifactId     String        @map("artifact_id")
+  artifact       Artifact      @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  version        String
+  status         VersionStatus @default(draft)
+  manifest       Json
+  changelog      String
+  tarballUrl     String        @map("tarball_url")
+  checksumSha256 String        @map("checksum_sha256")
+  sizeBytes      Int           @map("size_bytes")
+  createdBy      String        @map("created_by")
+  publishedBy    String?       @map("published_by")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  publishedAt    DateTime?     @map("published_at")
+
+  @@unique([artifactId, version])
+  @@index([artifactId])
+  @@map("artifact_versions")
+}
+
+model DistTag {
+  id         String   @id @default(cuid())
+  artifactId String @map("artifact_id")
+  artifact   Artifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  tag        String
+  version    String
+  updatedBy  String   @map("updated_by")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([artifactId, tag])
+  @@map("dist_tags")
+}
+
+model InstallEvent {
+  id                String   @id @default(cuid())
+  artifactId        String   @map("artifact_id")
+  artifact          Artifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  version           String
+  projectName       String?  @map("project_name")
+  workspacePathHash String?  @map("workspace_path_hash")
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cliVersion        String   @map("cli_version")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([artifactId])
+  @@map("install_events")
+}
+
+model ArtifactLibrary {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String   @default("")
+  ownerId     String   @map("owner_id")
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  artifacts  LibraryArtifact[]
+  workspaces WorkspaceLibrary[]
+
+  @@index([ownerId])
+  @@map("artifact_libraries")
+}
+
+model LibraryArtifact {
+  libraryId     String          @map("library_id")
+  artifactId    String          @map("artifact_id")
+  pinnedVersion String?         @map("pinned_version")
+  order         Int             @default(0)
+  library       ArtifactLibrary @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+  artifact      Artifact        @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@id([libraryId, artifactId])
+  @@map("library_artifacts")
+}
+
+model WorkspaceLibrary {
+  workspaceId String          @map("workspace_id")
+  libraryId   String          @map("library_id")
+  order       Int             @default(0)
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  library     ArtifactLibrary @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, libraryId])
+  @@map("workspace_libraries")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String   @map("actor_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}

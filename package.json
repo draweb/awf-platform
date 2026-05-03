@@ -1,0 +1,62 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "prisma generate && next build --turbopack",
+    "start": "next start",
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@awf/api-contract": "workspace:*",
+    "@awf/manifest-schema": "workspace:*",
+    "@tanstack/react-virtual": "^3.13.12",
+    "@prisma/client": "6.19.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.37.0",
+    "@vercel/blob": "^2.3.3",
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.3",
+    "next": "15.5.15",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "semver": "^7.7.4",
+    "swagger-ui-dist": "^5.32.5",
+    "swagger-ui-react": "^5.32.5",
+    "zod": "^4.4.1"
+  },
+  "devDependencies": {
+    "ignore": "^7.0.3",
+    "tar": "^7.5.2",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/semver": "^7.7.1",
+    "@vitest/coverage-v8": "^4.1.5",
+    "dotenv": "^17.4.2",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.15",
+    "prisma": "6.19.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5",
+    "vitest": "^4.1.5"
+  }
+}

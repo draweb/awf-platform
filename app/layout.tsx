@@ -35,7 +35,6 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark">
       <head>
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link href={MATERIAL_SYMBOLS_URL} rel="stylesheet" />
       </head>
       <body

@@ -54,7 +54,7 @@ export function MarkdownCanvas({ value, onChange, textareaRef: externalRef }: Pr
           <div
             key={i}
             className={`h-[1.625rem] leading-relaxed ${
-              i < lineCount ? lineHint(lines[i]) : "text-outline/15"
+              i < lineCount ? lineHint(lines[i] ?? "") : "text-outline/15"
             }`}
           >
             {i + 1}

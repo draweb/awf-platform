@@ -151,9 +151,10 @@ function highlightYamlLine(line: string): ReactNode {
   }
 
   const keyMatch = /^([a-zA-Z0-9_.-]+)\s*:/.exec(trimmed);
-  if (keyMatch) {
-    parts.push(<span key="k" className="syntax-key">{keyMatch[1]}</span>);
-    const rest = trimmed.slice(keyMatch[1].length);
+  const yamlKey = keyMatch?.[1];
+  if (yamlKey != null) {
+    parts.push(<span key="k" className="syntax-key">{yamlKey}</span>);
+    const rest = trimmed.slice(yamlKey.length);
     const colonAndVal = rest;
     if (colonAndVal.includes('"')) {
       const qi = colonAndVal.indexOf('"');
@@ -189,7 +190,7 @@ function keywordsForLang(lang: CodeLanguage): Set<string> | null {
 function MarkdownFrontmatterPanel({ yaml }: { yaml: string }) {
   const fmLines = yaml.split(/\r?\n/);
   return (
-    <details className="mb-4 rounded-xs border border-border bg-surface-container-low/40" defaultOpen>
+    <details className="mb-4 rounded-xs border border-border bg-surface-container-low/40" open>
       <summary className="cursor-pointer select-none px-3 py-2 font-[family-name:var(--font-label)] text-[10px] uppercase tracking-wider text-outline hover:text-on-surface-variant">
         Frontmatter (YAML)
       </summary>

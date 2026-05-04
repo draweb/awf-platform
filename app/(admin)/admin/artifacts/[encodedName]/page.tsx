@@ -48,19 +48,21 @@ function shortChecksum(hex: string): string {
   return `${hex.slice(0, 8)}…${hex.slice(-4)}`;
 }
 
-const artifactStatusChip: Record<string, { dot: string; text: string; label: string }> = {
+type StatusChip = { dot: string; text: string; label: string };
+
+const artifactStatusChip = {
   active: { dot: "bg-emerald-500", text: "text-emerald-400", label: "ACTIVE" },
   deprecated: { dot: "bg-amber-500", text: "text-amber-400", label: "DEPRECATED" },
   archived: { dot: "bg-outline", text: "text-outline", label: "ARCHIVED" },
-};
+} as const satisfies Record<string, StatusChip>;
 
-const versionStatusChip: Record<string, { dot: string; text: string; label: string }> = {
+const versionStatusChip = {
   published: { dot: "bg-emerald-500", text: "text-emerald-400", label: "PUBLISHED" },
   draft: { dot: "bg-amber-500", text: "text-amber-400", label: "DRAFT" },
   review: { dot: "bg-sky-400", text: "text-sky-300", label: "REVIEW" },
   deprecated: { dot: "bg-outline", text: "text-outline", label: "DEPRECATED" },
   yanked: { dot: "bg-red-500", text: "text-red-400", label: "YANKED" },
-};
+} as const satisfies Record<string, StatusChip>;
 
 export default function ArtifactDetailPage() {
   const params = useParams();
@@ -122,7 +124,9 @@ export default function ArtifactDetailPage() {
     );
   }
 
-  const ast = artifactStatusChip[data.status] ?? artifactStatusChip.active;
+  const ast =
+    artifactStatusChip[data.status as keyof typeof artifactStatusChip] ??
+    artifactStatusChip.active;
 
   return (
     <div className="flex flex-col gap-3 min-h-0 pb-4">
@@ -308,12 +312,13 @@ export default function ArtifactDetailPage() {
                 </tr>
               ) : (
                 data.versions.map((v) => {
-                  const vs =
-                    versionStatusChip[v.status] ?? {
-                      dot: "bg-outline",
-                      text: "text-on-surface-variant",
-                      label: v.status.toUpperCase(),
-                    };
+                  const preset =
+                    versionStatusChip[v.status as keyof typeof versionStatusChip];
+                  const vs = preset ?? {
+                    dot: "bg-outline",
+                    text: "text-on-surface-variant",
+                    label: v.status.toUpperCase(),
+                  };
                   return (
                     <tr key={v.id} className="hover:bg-surface-container-low/40 transition-colors">
                       <td className="px-4 py-3">

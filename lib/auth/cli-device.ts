@@ -96,7 +96,8 @@ export async function exchangeDeviceAuthorization(deviceCode: string): Promise<E
   if (row.expiresAt <= new Date()) return { type: "invalid" };
   if (row.status === "consumed") return { type: "invalid" };
   if (row.status === "pending") return { type: "pending" };
-  if (row.status !== "approved" || !row.userId) return { type: "invalid" };
+  const approvedUserId = row.userId;
+  if (row.status !== "approved" || !approvedUserId) return { type: "invalid" };
 
   return prisma.$transaction(async (tx) => {
     const locked = await tx.cliDeviceAuthorization.updateMany({
@@ -108,7 +109,7 @@ export async function exchangeDeviceAuthorization(deviceCode: string): Promise<E
       if (again?.status === "consumed") return { type: "invalid" };
       return { type: "pending" };
     }
-    const { rawToken, record } = await createCliAccessTokenForUserTx(tx, row.userId);
+    const { rawToken, record } = await createCliAccessTokenForUserTx(tx, approvedUserId);
     await tx.cliDeviceAuthorization.update({
       where: { id: row.id },
       data: { cliAccessTokenId: record.id },
@@ -119,7 +120,7 @@ export async function exchangeDeviceAuthorization(deviceCode: string): Promise<E
       access_token: rawToken,
       expires_in,
       tokenId: record.id,
-      userId: row.userId,
+      userId: approvedUserId,
     };
   });
 }

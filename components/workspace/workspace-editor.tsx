@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Constitution, SectionBlock } from "@/lib/domain/workspace-constitution";
+import type { Constitution } from "@/lib/domain/workspace-constitution";
 import { buildWorkspaceMarkdown, EMPTY_CONSTITUTION, EXAMPLE_CONSTITUTION } from "@/lib/domain/workspace-constitution";
 import { DEFAULT_NEW_WORKSPACE_SYSTEM_PROMPT_MD } from "@/lib/domain/workspace-new-default-markdown";
 import {

@@ -55,14 +55,11 @@ function formatFeedTime(iso: string): string {
   return d.toISOString().slice(11, 19);
 }
 
-const workspaceStatusStyles: Record<
-  string,
-  { dot: string; text: string; label: string }
-> = {
+const workspaceStatusStyles = {
   active: { dot: "bg-green-500 animate-pulse", text: "text-green-500", label: "ACTIVE" },
   draft: { dot: "bg-yellow-500", text: "text-yellow-500", label: "DRAFT" },
   archived: { dot: "bg-outline", text: "text-outline", label: "ARCHIVED" },
-};
+} as const satisfies Record<string, { dot: string; text: string; label: string }>;
 
 function feedLineColor(kind: ActivityFeedLine["kind"], tag: string): string {
   if (kind === "install") return "text-secondary";
@@ -204,7 +201,9 @@ export default function AdminDashboardPage() {
                 </tr>
               ) : (
                 filteredWorkspaces.map((ws) => {
-                  const st = workspaceStatusStyles[ws.status] ?? workspaceStatusStyles.draft;
+                  const st =
+                    workspaceStatusStyles[ws.status as keyof typeof workspaceStatusStyles] ??
+                    workspaceStatusStyles.draft;
                   return (
                     <tr key={ws.id} className="hover:bg-surface-container-low transition-colors">
                       <td className="px-4 py-3">

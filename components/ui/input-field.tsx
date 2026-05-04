@@ -1,9 +1,9 @@
 "use client";
 
 import type { InputHTMLAttributes } from "react";
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 
-type InputFieldProps = {
+export type InputFieldProps = {
   label: string;
   icon?: string;
   trailing?: React.ReactNode;
@@ -13,16 +13,19 @@ type InputFieldProps = {
   passwordVisibilityToggle?: boolean;
 } & InputHTMLAttributes<HTMLInputElement>;
 
-export function InputField({
-  label,
-  icon,
-  trailing,
-  labelClassName,
-  className = "",
-  passwordVisibilityToggle,
-  type,
-  ...rest
-}: InputFieldProps) {
+export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(function InputField(
+  {
+    label,
+    icon,
+    trailing,
+    labelClassName,
+    className = "",
+    passwordVisibilityToggle,
+    type,
+    ...rest
+  },
+  ref,
+) {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const inputType =
     passwordVisibilityToggle === true ? (passwordVisible ? "text" : "password") : type;
@@ -40,6 +43,7 @@ export function InputField({
       </div>
       <div className="relative group">
         <input
+          ref={ref}
           type={inputType}
           className={`w-full bg-input border border-border rounded-sm text-sm font-mono text-on-surface
             focus:ring-0 focus:border-primary-container transition-colors
@@ -72,4 +76,6 @@ export function InputField({
       </div>
     </div>
   );
-}
+});
+
+InputField.displayName = "InputField";

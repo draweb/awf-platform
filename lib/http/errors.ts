@@ -8,7 +8,8 @@ export type ErrorCode =
   | "VERSION_EXISTS"
   | "RATE_LIMITED"
   | "PAYLOAD_TOO_LARGE"
-  | "INTERNAL";
+  | "INTERNAL"
+  | "DEVICE_CODE_INVALID";
 
 export class ApiError extends Error {
   readonly code: ErrorCode;

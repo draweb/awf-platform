@@ -29,12 +29,12 @@ jobs:
             exit 1
           fi
 
-  release:
-    name: Tests, migración prod y deploy Vercel
+  # Sin environment: production — no expone secretos de Vercel/DB prod al runner de tests
+  quality:
+    name: Tests y build (CI)
     runs-on: ubuntu-latest
     needs: validate-tag
-    environment: production
-    timeout-minutes: 45
+    timeout-minutes: 25
 
     services:
       postgres:
@@ -55,6 +55,91 @@ jobs:
       DATABASE_URL: postgresql://awf:awf@localhost:5432/awf_ci?schema=public
       SESSION_SECRET: ci-session-secret-minimum-32-characters-long-xx
       REDIS_URL: ""
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Build paquetes workspace
+        run: |
+          set -euo pipefail
+          pnpm --filter @awf/manifest-schema build
+          pnpm --filter @awf/api-contract build
+
+      - name: Prisma migrate deploy (CI)
+        run: pnpm exec prisma migrate deploy
+
+      - name: Tests
+        run: pnpm run test
+
+      - name: Build Next.js (paridad con CI)
+        run: pnpm run build
+
+  migrate-production:
+    name: Migración producción (Prisma)
+    runs-on: ubuntu-latest
+    needs: quality
+    environment: production
+    timeout-minutes: 15
+
+    env:
+      SESSION_SECRET: ci-session-secret-minimum-32-characters-long-xx
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Build paquetes workspace
+        run: |
+          set -euo pipefail
+          pnpm --filter @awf/manifest-schema build
+          pnpm --filter @awf/api-contract build
+
+      - name: Prisma migrate deploy (producción)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error::Secret DATABASE_URL_PRODUCTION no configurado en el entorno production."
+            exit 1
+          fi
+          pnpm exec prisma migrate deploy
+
+  deploy-vercel:
+    name: Deploy Vercel (prebuilt)
+    runs-on: ubuntu-latest
+    needs: migrate-production
+    environment: production
+    timeout-minutes: 25
+
+    env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -88,23 +173,6 @@ jobs:
           set -euo pipefail
           pnpm --filter @awf/manifest-schema build
           pnpm --filter @awf/api-contract build
-
-      - name: Prisma migrate deploy (CI)
-        run: pnpm exec prisma migrate deploy
-
-      - name: Tests
-        run: pnpm run test
-
-      - name: Prisma migrate deploy (producción)
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
-        run: |
-          set -euo pipefail
-          if [ -z "${DATABASE_URL:-}" ]; then
-            echo "::error::Secret DATABASE_URL_PRODUCTION no configurado."
-            exit 1
-          fi
-          pnpm exec prisma migrate deploy
 
       - name: Instalar Vercel CLI
         run: npm install -g vercel@latest
